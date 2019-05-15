@@ -8,10 +8,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 86a8f8abd50882641946b6e97ea405f7, type: 3}
+  m_Script: {fileID: 11500000, guid: c2a2df63e2d9d4bf8b3b61dbec6e8d5a, type: 3}
   m_Name: Blessing (Orc)
   m_EditorClassIdentifier: 
-  category: Heal
   followupDefaultAttack: 0
   toolTip: '<b>{NAME} Lvl {LEVEL}</b>
 
@@ -29,24 +28,30 @@ MonoBehaviour:
     Mana Costs: {MANACOSTS}'
   image: {fileID: 21300000, guid: 9bf3eb0c06913d3458a2c8ca9e072b6d, type: 3}
   learnDefault: 0
-  levels:
-  - damage: 0
-    castTime: 0.5
-    cooldown: 60
-    castRange: 5
-    aoeRadius: 0
-    manaCosts: 5
-    healsHealth: 20
-    healsMana: 0
-    buffTime: 0
-    buffsHealthMax: 0
-    buffsManaMax: 0
-    buffsDamage: 0
-    buffsDefense: 0
-    buffsHealthPercentPerSecond: 0
-    buffsManaPercentPerSecond: 0
-    buffsBlockChance: 0
-    buffsCriticalChance: 0
-    effectPrefab: {fileID: 114077849648106692, guid: 015ed784dc3464aa997ee8315bf4e830,
-      type: 2}
-    requiredLevel: 1
+  cancelCastIfTargetDied: 1
+  showSelector: 1
+  requiredLevel:
+    baseValue: 1
+    bonusPerLevel: 1
+  maxLevel: 4
+  manaCosts:
+    baseValue: 5
+    bonusPerLevel: 1
+  castTime:
+    baseValue: 0.5
+    bonusPerLevel: 0
+  cooldown:
+    baseValue: 60
+    bonusPerLevel: 5
+  castRange:
+    baseValue: 5
+    bonusPerLevel: 0
+  healsHealth:
+    baseValue: 20
+    bonusPerLevel: 5
+  healsMana:
+    baseValue: 0
+    bonusPerLevel: 0
+  effect: {fileID: 114068315229339286, guid: 015ed784dc3464aa997ee8315bf4e830, type: 2}
+  canHealSelf: 1
+  canHealTeam: 1

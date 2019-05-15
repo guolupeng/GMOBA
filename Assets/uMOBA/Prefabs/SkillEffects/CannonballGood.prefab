@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3394206}
   - component: {fileID: 2323628}
   - component: {fileID: 11415440}
-  - component: {fileID: 11455128}
+  - component: {fileID: 114126922341088236}
   m_Layer: 0
   m_Name: CannonballGood
   m_TagString: Untagged
@@ -62,6 +62,7 @@ MeshRenderer:
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
+  m_SortingLayer: 0
   m_SortingOrder: 0
 --- !u!33 &3394206
 MeshFilter:
@@ -102,20 +103,6 @@ MonoBehaviour:
     i15: 46
   m_ServerOnly: 0
   m_LocalPlayerAuthority: 0
---- !u!114 &11455128
-MonoBehaviour:
-  m_ObjectHideFlags: 1
-  m_PrefabParentObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
-  m_GameObject: {fileID: 174788}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 72ece1e18becb44788eaeca8104d1c2b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  isPurelyVisual: 0
-  skillIndex: 0
-  speed: 0.4
 --- !u!1001 &100100000
 Prefab:
   m_ObjectHideFlags: 1
@@ -127,3 +114,16 @@ Prefab:
   m_ParentPrefab: {fileID: 0}
   m_RootGameObject: {fileID: 174788}
   m_IsPrefabParent: 1
+--- !u!114 &114126922341088236
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 174788}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc826f2d298074c4c806fb76d0429457, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  speed: 1
+  damage: 1

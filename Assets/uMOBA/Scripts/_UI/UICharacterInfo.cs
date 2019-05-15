@@ -12,8 +12,8 @@ public class UICharacterInfo : MonoBehaviour {
         if (!player) return;
 
         // show all stats like base(+bonus)
-        damageText.text = player.baseDamage + " ( + " + (player.damage-player.baseDamage) + ")";
-        defenseText.text = player.baseDefense + " ( + " + (player.defense-player.baseDefense) + ")";
-        speedText.text = player.speed + " ( + 0)";
+        damageText.text = player.damage.ToString();
+        defenseText.text = player.defense.ToString();
+        speedText.text = player.speed.ToString();
     }
 }

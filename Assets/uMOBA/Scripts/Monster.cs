@@ -33,30 +33,6 @@ using System.Collections.Generic;
 
 [RequireComponent(typeof(Animator))]
 public class Monster : Entity {
-    [Header("Health")]
-    [SerializeField] int _healthMax = 1;
-    public override int healthMax { get { return _healthMax; } }
-
-    [Header("Mana")]
-    [SerializeField] int _manaMax = 1;
-    public override int manaMax { get { return _manaMax; } }
-
-    [Header("Damage")]
-    [SerializeField] int _damage = 2;
-    public override int damage { get { return _damage; } }
-
-    [Header("Defense")]
-    [SerializeField] int _defense = 1;
-    public override int defense { get { return _defense; } }
-
-    [Header("Block")]
-    [SerializeField, Range(0, 1)] float _blockChance = 0;
-    public override float blockChance { get { return _blockChance; } }
-
-    [Header("Critical")]
-    [SerializeField, Range(0, 1)] float _criticalChance = 0;
-    public override float criticalChance { get { return _criticalChance; } }
-
     [Header("Movement")]
     // monsters should follow their targets even if they run out of the movement
     // radius. the follow dist should always be bigger than the biggest archer's
@@ -79,6 +55,9 @@ public class Monster : Entity {
 
     // save the start position for random movement distance and respawning
     Vector3 startPosition;
+
+    // the last skill that was casted, to decide which one to cast next
+    int lastSkill = -1;
 
     // networkbehaviour ////////////////////////////////////////////////////////
     protected override void Awake() {
@@ -106,10 +85,13 @@ public class Monster : Entity {
         // => only play moving animation while the agent is actually moving. the
         //    MOVING state might be delayed to due latency or we might be in
         //    MOVING while a path is still pending, etc.
+        // => skill names are assumed to be boolean parameters in animator
+        //    so we don't need to worry about an animation number etc.
         animator.SetBool("MOVING", state == "MOVING" && agent.velocity != Vector3.zero);
         animator.SetBool("CASTING", state == "CASTING");
-        animator.SetInteger("currentSkill", currentSkill);
         animator.SetBool("DEAD", state == "DEAD");
+        foreach (Skill skill in skills)
+            animator.SetBool(skill.name, skill.CastTimeRemaining() > 0);
     }
 
     // OnDrawGizmos only happens while the Script is not collapsed
@@ -141,9 +123,10 @@ public class Monster : Entity {
     }
 
     bool EventTargetTooFarToAttack() {
+        Vector3 destination;
         return target != null &&
                0 <= currentSkill && currentSkill < skills.Count &&
-               !CastCheckDistance(skills[currentSkill]);
+               !CastCheckDistance(skills[currentSkill], out destination);
     }
 
     bool EventTargetTooFarToFollow() {
@@ -231,7 +214,7 @@ public class Monster : Entity {
         }
         if (EventAggro()) {
             // target in attack range. try to cast a first skill on it
-            if (skills.Count > 0) currentSkill = 0;
+            if (skills.Count > 0) currentSkill = NextReadySkill();
             else Debug.LogError(name + " has no skills to attack with.");
             return "IDLE";
         }
@@ -296,7 +279,7 @@ public class Monster : Entity {
         if (EventAggro()) {
             // target in attack range. try to cast a first skill on it
             // (we may get a target while randomly wandering around)
-            if (skills.Count > 0) currentSkill = 0;
+            if (skills.Count > 0) currentSkill = NextReadySkill();
             else Debug.LogError(name + " has no skills to attack with.");
             agent.ResetPath();
             return "IDLE";
@@ -324,16 +307,20 @@ public class Monster : Entity {
             return "DEAD";
         }
         if (EventTargetDisappeared()) {
-            // target disappeared, stop casting
-            currentSkill = -1;
-            target = null;
-            return "IDLE";
+            // cancel if the target matters for this skill
+            if (skills[currentSkill].cancelCastIfTargetDied) {
+                currentSkill = -1;
+                target = null;
+                return "IDLE";
+            }
         }
         if (EventTargetDied()) {
-            // target died, stop casting
-            currentSkill = -1;
-            target = null;
-            return "IDLE";
+            // cancel if the target matters for this skill
+            if (skills[currentSkill].cancelCastIfTargetDied) {
+                currentSkill = -1;
+                target = null;
+                return "IDLE";
+            }
         }
         if (EventSkillFinished()) {
             // finished casting. apply the skill on the target.
@@ -344,6 +331,7 @@ public class Monster : Entity {
             if (target.health == 0) target = null;
 
             // go back to IDLE
+            lastSkill = currentSkill;
             currentSkill = -1;
             return "IDLE";
         }
@@ -408,10 +396,11 @@ public class Monster : Entity {
     }
 
     // aggro ///////////////////////////////////////////////////////////////////
-    [ServerCallback] // called by AggroArea from servers and clients
+    // this function is called by entities that attack us and by AggroArea
+    [ServerCallback]
     public override void OnAggro(Entity entity) {
         // are we alive, and is the entity alive and of correct type and team?
-        if (health > 0 && entity != null && entity.health > 0 && entity.team != team && CanAttackType(entity.GetType())) {
+        if (entity != null && CanAttack(entity)) {
             // no target yet(==self), or closer than current target?
             // => has to be at least 20% closer to be worth it, otherwise we
             //    may end up nervously switching between two targets
@@ -422,7 +411,7 @@ public class Monster : Entity {
             //       the aggro area anyway. transform.position is perfectly fine
             if (target == null) {
                 target = entity;
-            } else {
+            } else if (entity != target) { // no need to check dist for same target
                 float oldDistance = Vector3.Distance(transform.position, target.transform.position);
                 float newDistance = Vector3.Distance(transform.position, entity.transform.position);
                 if (newDistance < oldDistance * 0.8) target = entity;
@@ -435,7 +424,7 @@ public class Monster : Entity {
     void OnDeath() {
         // stop any movement and buffs, clear target
         agent.ResetPath();
-        StopBuffs();
+        buffs.Clear();
         target = null;
 
         // set death and respawn end times. we set both of them now to make sure
@@ -447,12 +436,33 @@ public class Monster : Entity {
     }
 
     // skills //////////////////////////////////////////////////////////////////
-    public override bool CanAttackType(System.Type type) {
-        return type == typeof(Monster) || type == typeof(Player) || type == typeof(Tower) || type == typeof(Barrack) || type == typeof(Base);
+    public override bool CanAttack(Entity entity) {
+        return health > 0 &&
+               entity != this &&
+               entity.health > 0 &&
+               entity.team != team &&
+               (entity is Player || entity is Monster || entity is Tower || entity is Barrack || entity is Base);
     }
 
     // helper function to get the current cast range (if casting anything)
     public float CurrentCastRange() {
         return 0 <= currentSkill && currentSkill < skills.Count ? skills[currentSkill].castRange : 0;
+    }
+
+    // helper function to decide which skill to cast
+    // => we got through skills one after another, this is better than selecting
+    //    a random skill because it allows for some planning like:
+    //    'strong skeleton always starts with a stun' etc.
+    int NextReadySkill() {
+        // find the next ready skill, starting at 'lastSkill+1' (= next one)
+        // and looping at max once through them all (up to skill.Count)
+        //  note: no skills.count == 0 check needed, this works with empty lists
+        //  note: also works if lastSkill is still -1 from initialization
+        for (int i = 0; i < skills.Count; ++i) {
+            int index = (lastSkill + 1 + i) % skills.Count;
+            if (skills[index].IsReady())
+                return index;
+        }
+        return -1;
     }
 }

@@ -7,17 +7,22 @@
 using UnityEngine;
 using UnityEngine.Networking;
 
-// resynchronize every now and then. reliable
-// is important, we really do need the time all the time.
-[NetworkSettings(sendInterval=60)]
+// resynchronize every now and then. theoretically 60s would be enough, but if
+// the server freezes for a short time then the client's time will be ahead
+// until the next sync. so let's sync relatively often so the client is usually
+// perfectly in sync.
+// (reliable is important, we really do need the time all the time)
+[NetworkSettings(sendInterval=5)]
 public class NetworkTime : NetworkBehaviour {
     // add offset to Time.time to get the server time
     public static float offset;
 
     // server time caclulation
-    public static float time {
-        get { return Time.time + offset; }
-    }
+    public static float time { get { return Time.time + offset; } }
+
+    // force dirty bit so that it's synced after sendInterval. otherwise it
+    // won't be synced and the time might get out of sync at some point.
+    void Update() { SetDirtyBit(1); }
 
     // server-side serialization
     //

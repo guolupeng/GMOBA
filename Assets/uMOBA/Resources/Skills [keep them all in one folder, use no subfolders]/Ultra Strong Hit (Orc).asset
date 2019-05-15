@@ -8,10 +8,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 86a8f8abd50882641946b6e97ea405f7, type: 3}
+  m_Script: {fileID: 11500000, guid: 1f56c07e7629e4304a6a3e18961596b7, type: 3}
   m_Name: Ultra Strong Hit (Orc)
   m_EditorClassIdentifier: 
-  category: Attack
   followupDefaultAttack: 1
   toolTip: '<b>{NAME} Lvl {LEVEL}</b>
 
@@ -29,42 +28,23 @@ MonoBehaviour:
     Mana Costs: {MANACOSTS}'
   image: {fileID: 21300000, guid: 3be2e9916da509643b6a7a6df2c4836c, type: 3}
   learnDefault: 0
-  levels:
-  - damage: 30
-    castTime: 1.367
-    cooldown: 10
-    castRange: 2.3
-    aoeRadius: 0
-    manaCosts: 10
-    healsHealth: 0
-    healsMana: 0
-    buffTime: 0
-    buffsHealthMax: 0
-    buffsManaMax: 0
-    buffsDamage: 0
-    buffsDefense: 0
-    buffsHealthPercentPerSecond: 0
-    buffsManaPercentPerSecond: 0
-    buffsBlockChance: 0
-    buffsCriticalChance: 0
-    projectile: {fileID: 0}
-    requiredLevel: 1
-  - damage: 35
-    castTime: 1.367
-    cooldown: 10
-    castRange: 2.3
-    aoeRadius: 0
-    manaCosts: 10
-    healsHealth: 0
-    healsMana: 0
-    buffTime: 0
-    buffsHealthMax: 0
-    buffsManaMax: 0
-    buffsDamage: 0
-    buffsDefense: 0
-    buffsHealthPercentPerSecond: 0
-    buffsManaPercentPerSecond: 0
-    buffsBlockChance: 0
-    buffsCriticalChance: 0
-    projectile: {fileID: 0}
-    requiredLevel: 2
+  cancelCastIfTargetDied: 1
+  requiredLevel:
+    baseValue: 1
+    bonusPerLevel: 1
+  maxLevel: 4
+  manaCosts:
+    baseValue: 8
+    bonusPerLevel: 2
+  castTime:
+    baseValue: 1.367
+    bonusPerLevel: 0
+  cooldown:
+    baseValue: 10
+    bonusPerLevel: 1
+  castRange:
+    baseValue: 2.3
+    bonusPerLevel: 0
+  damage:
+    baseValue: 30
+    bonusPerLevel: 10

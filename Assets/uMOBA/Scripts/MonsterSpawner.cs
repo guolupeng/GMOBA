@@ -23,7 +23,7 @@ public class MonsterSpawner : NetworkBehaviour {
         go.name = monster.name; // remove "(Clone)" suffix
         go.GetComponent<Monster>().goal = monsterGoal;
 
-        // temporary workaround for bug #953962
+        // temporary workaround for bug #950004
         go.GetComponent<NavMeshAgent>().Warp(transform.position);
 
         // set preferred navmesh area costs to 1

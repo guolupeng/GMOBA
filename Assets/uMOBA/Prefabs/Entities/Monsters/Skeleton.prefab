@@ -1444,7 +1444,7 @@ Transform:
   m_PrefabParentObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1000010254940262}
-  m_LocalRotation: {x: -0.68534446, y: 0.07724662, z: 0.706168, w: -0.16019627}
+  m_LocalRotation: {x: -0.6853444, y: 0.077246614, z: 0.70616794, w: -0.16019626}
   m_LocalPosition: {x: -0.00000659487, y: -0.23532069, z: -0.00000027567148}
   m_LocalScale: {x: 0.9999999, y: 0.9999999, z: 0.9999999}
   m_Children:
@@ -2067,22 +2067,39 @@ MonoBehaviour:
   collider: {fileID: 136000013239392194}
   _state: IDLE
   level: 1
+  _healthMax:
+    baseValue: 20
+    bonusPerLevel: 0
   invincibleWhileAllAlive: []
   healthRecovery: 1
-  baseHealthRecoveryRate: 1
-  manaRecovery: 1
-  baseManaRecoveryRate: 1
+  _healthRecoveryRate:
+    baseValue: 1
+    bonusPerLevel: 0
+  _manaMax:
+    baseValue: 0
+    bonusPerLevel: 0
+  manaRecovery: 0
+  _manaRecoveryRate:
+    baseValue: 0
+    bonusPerLevel: 0
+  _damage:
+    baseValue: 5
+    bonusPerLevel: 0
+  _defense:
+    baseValue: 1
+    bonusPerLevel: 0
+  _blockChance:
+    baseValue: 0
+    bonusPerLevel: 0
+  _criticalChance:
+    baseValue: 0
+    bonusPerLevel: 0
   team: 2
   damagePopupPrefab: {fileID: 1000011210596470, guid: f311fc9ca8f3748a0ade3f7d107c0e0a,
     type: 2}
   skillTemplates:
-  - {fileID: 11400000, guid: f30d36ba13a40443ab120adf4f2a4ffb, type: 2}
-  _healthMax: 1
-  _manaMax: 1
-  _damage: 5
-  _defense: 1
-  _blockChance: 0
-  _criticalChance: 0
+  - {fileID: 11400000, guid: 42f7cac7565174e2f8bb41686ba84259, type: 2}
+  _effectMount: {fileID: 4000012380767412}
   followDistance: 10
   goal: {fileID: 0}
   rewardExperience: 10

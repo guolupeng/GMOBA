@@ -13,25 +13,49 @@ AnimatorController:
     m_DefaultFloat: 0
     m_DefaultInt: 0
     m_DefaultBool: 0
-    m_Controller: {fileID: 9100000}
+    m_Controller: {fileID: 0}
   - m_Name: CASTING
     m_Type: 4
     m_DefaultFloat: 0
     m_DefaultInt: 0
     m_DefaultBool: 0
-    m_Controller: {fileID: 9100000}
-  - m_Name: currentSkill
-    m_Type: 3
-    m_DefaultFloat: 0
-    m_DefaultInt: -1
-    m_DefaultBool: 0
-    m_Controller: {fileID: 9100000}
+    m_Controller: {fileID: 0}
   - m_Name: DEAD
     m_Type: 4
     m_DefaultFloat: 0
     m_DefaultInt: 0
     m_DefaultBool: 0
-    m_Controller: {fileID: 9100000}
+    m_Controller: {fileID: 0}
+  - m_Name: Normal Attack (Orc)
+    m_Type: 4
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 0}
+  - m_Name: Strong Hit (Orc)
+    m_Type: 4
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 0}
+  - m_Name: Ultra Strong Hit (Orc)
+    m_Type: 4
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 0}
+  - m_Name: Blessing (Orc)
+    m_Type: 4
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 0}
+  - m_Name: Hard Shell (Orc)
+    m_Type: 4
+    m_DefaultFloat: 0
+    m_DefaultInt: 0
+    m_DefaultBool: 0
+    m_Controller: {fileID: 0}
   m_AnimatorLayers:
   - serializedVersion: 5
     m_Name: Base Layer
@@ -55,8 +79,8 @@ AnimatorStateTransition:
   - m_ConditionMode: 1
     m_ConditionEvent: CASTING
     m_EventTreshold: 1.8
-  - m_ConditionMode: 6
-    m_ConditionEvent: currentSkill
+  - m_ConditionMode: 1
+    m_ConditionEvent: Strong Hit (Orc)
     m_EventTreshold: 1
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: 110251418}
@@ -82,8 +106,8 @@ AnimatorStateTransition:
   - m_ConditionMode: 1
     m_ConditionEvent: CASTING
     m_EventTreshold: 1.8
-  - m_ConditionMode: 6
-    m_ConditionEvent: currentSkill
+  - m_ConditionMode: 1
+    m_ConditionEvent: Normal Attack (Orc)
     m_EventTreshold: 0
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: 110244034}
@@ -133,8 +157,8 @@ AnimatorStateTransition:
   - m_ConditionMode: 1
     m_ConditionEvent: CASTING
     m_EventTreshold: 1.8
-  - m_ConditionMode: 6
-    m_ConditionEvent: currentSkill
+  - m_ConditionMode: 1
+    m_ConditionEvent: Ultra Strong Hit (Orc)
     m_EventTreshold: 2
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: 110279678}
@@ -402,8 +426,8 @@ AnimatorStateTransition:
   - m_ConditionMode: 1
     m_ConditionEvent: CASTING
     m_EventTreshold: 0
-  - m_ConditionMode: 6
-    m_ConditionEvent: currentSkill
+  - m_ConditionMode: 1
+    m_ConditionEvent: Hard Shell (Orc)
     m_EventTreshold: 4
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: 1102468058893914168}
@@ -429,8 +453,8 @@ AnimatorStateTransition:
   - m_ConditionMode: 1
     m_ConditionEvent: CASTING
     m_EventTreshold: 0
-  - m_ConditionMode: 6
-    m_ConditionEvent: currentSkill
+  - m_ConditionMode: 1
+    m_ConditionEvent: Blessing (Orc)
     m_EventTreshold: 3
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: 1102554220187638352}

@@ -9,22 +9,8 @@ using UnityEngine.Serialization;
 using System;
 
 public class Npc : Entity {
-    [Header("Health")]
-    [SerializeField] int _healthMax = 1;
-    public override int healthMax { get { return _healthMax; } }
-
-    [Header("Mana")]
-    [SerializeField] int _manaMax = 1;
-    public override int manaMax { get { return _manaMax; } }
-
     [Header("Items for Sale")]
     public ItemTemplate[] saleItems;
-
-    // other properties
-    public override int damage { get { return 0; } }
-    public override int defense { get { return 0; } }
-    public override float blockChance { get { return 0; } }
-    public override float criticalChance { get { return 0; } }
 
     // networkbehaviour ////////////////////////////////////////////////////////
     public override void OnStartServer() {
@@ -40,5 +26,5 @@ public class Npc : Entity {
     [Client] protected override void UpdateClient() {}
 
     // skills //////////////////////////////////////////////////////////////////
-    public override bool CanAttackType(Type type) { return false; }
+    public override bool CanAttack(Entity entity) { return false; }
 }

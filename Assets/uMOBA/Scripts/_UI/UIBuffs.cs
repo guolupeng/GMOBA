@@ -10,19 +10,18 @@ public class UIBuffs : MonoBehaviour {
         if (!player) return;
 
         // instantiate/destroy enough slots
-        var buffs = player.skills.Where(s => s.BuffTimeRemaining() > 0).ToList();
-        UIUtils.BalancePrefabs(slotPrefab.gameObject, buffs.Count, transform);
+        UIUtils.BalancePrefabs(slotPrefab.gameObject, player.buffs.Count, transform);
 
         // refresh all
-        for (int i = 0; i < buffs.Count; ++i) {
+        for (int i = 0; i < player.buffs.Count; ++i) {
             var slot = transform.GetChild(i).GetComponent<UIBuffSlot>();
 
             // refresh
             slot.image.color = Color.white;
-            slot.image.sprite = buffs[i].image;
-            slot.tooltip.text = buffs[i].ToolTip();
-            slot.slider.maxValue = buffs[i].buffTime;
-            slot.slider.value = buffs[i].BuffTimeRemaining();
+            slot.image.sprite = player.buffs[i].image;
+            slot.tooltip.text = player.buffs[i].ToolTip();
+            slot.slider.maxValue = player.buffs[i].buffTime;
+            slot.slider.value = player.buffs[i].BuffTimeRemaining();
         }
     }
 }

@@ -4,29 +4,10 @@ using UnityEngine.Networking;
 using UnityEngine.Serialization;
 
 public class Tower : Entity {
-    [Header("Health")]
-    [SerializeField] int _healthMax = 200;
-    public override int healthMax { get { return _healthMax; } }
-    public override int manaMax { get { return 0; } }
-
-    // other properties
-    [Header("Damage & Defense")]
-    [SyncVar] public int baseDamage = 1;
-    public override int damage { get { return baseDamage; } }
-
-    [SyncVar] public int baseDefense = 1;
-    public override int defense { get { return baseDefense; } }
-
-    [SyncVar] public int baseBlockChance = 0;
-    public override float blockChance { get { return baseBlockChance; } }
-
-    [Range(0, 1)] public float baseCritChance = 0;
-    public override float criticalChance { get { return baseCritChance; } }
-
     [Header("Reward")]
     public long rewardExperience = 20;
     public int rewardGold = 20;
-    
+
     // networkbehaviour ////////////////////////////////////////////////////////
     public override void OnStartServer() {
         base.OnStartServer();
@@ -50,22 +31,23 @@ public class Tower : Entity {
     }
 
     bool EventTargetTooFarToAttack() {
+        Vector3 destination;
         return target != null &&
                0 <= currentSkill && currentSkill < skills.Count &&
-               !CastCheckDistance(skills[currentSkill]);
+               !CastCheckDistance(skills[currentSkill], out destination);
     }
 
     bool EventAggro() {
         return target != null && target.health > 0;
     }
-    
+
     bool EventSkillRequest() {
-        return 0 <= currentSkill && currentSkill < skills.Count;        
+        return 0 <= currentSkill && currentSkill < skills.Count;
     }
-    
+
     bool EventSkillFinished() {
         return 0 <= currentSkill && currentSkill < skills.Count &&
-               skills[currentSkill].CastTimeRemaining() == 0;        
+               skills[currentSkill].CastTimeRemaining() == 0;
     }
 
     // finite state machine - server ///////////////////////////////////////////
@@ -112,7 +94,7 @@ public class Tower : Entity {
 
         return "IDLE"; // nothing interesting happened
     }
-    
+
     [Server]
     string UpdateServer_CASTING() {
         // events sorted by priority (e.g. target doesn't matter if we died)
@@ -141,7 +123,7 @@ public class Tower : Entity {
             // did the target die? then clear it so that the monster doesn't
             // run towards it if the target respawned
             if (target.health == 0) target = null;
-            
+
             // go back to IDLE
             currentSkill = -1;
             return "IDLE";
@@ -149,10 +131,10 @@ public class Tower : Entity {
         if (EventTargetTooFarToAttack()) {} // don't care, we were close enough when starting to cast
         if (EventAggro()) {} // don't care, always have aggro while casting
         if (EventSkillRequest()) {} // don't care, that's why we are here
-        
+
         return "CASTING"; // nothing interesting happened
     }
-    
+
     [Server]
     string UpdateServer_DEAD() {
         // events sorted by priority (e.g. target doesn't matter if we died)
@@ -189,7 +171,7 @@ public class Tower : Entity {
     [ServerCallback] // called by AggroArea from servers and clients
     public override void OnAggro(Entity entity) {
         // alive? (dead entities have colliders too) and different team?
-        if (entity && entity.health > 0 && entity.team != team && CanAttackType(entity.GetType())) {
+        if (entity != null && CanAttack(entity)) {
             // no target yet(==self), or closer than current target?
             // => has to be at least 20% closer to be worth it, otherwise we
             //    may end up nervously switching between two targets
@@ -209,7 +191,11 @@ public class Tower : Entity {
     }
 
     // skills //////////////////////////////////////////////////////////////////
-    public override bool CanAttackType(System.Type type) {
-        return type == typeof(Monster) || type == typeof(Player);
+    public override bool CanAttack(Entity entity) {
+        return health > 0 &&
+               entity != this &&
+               entity.health > 0 &&
+               entity.team != team &&
+               (entity is Monster || entity is Player);
     }
 }

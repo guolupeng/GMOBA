@@ -12,11 +12,11 @@ public class UISkills : MonoBehaviour {
         if (player.skills[skillIndex].learned &&
             player.skills[skillIndex].IsReady()) {
             // set skill wanted so that the skill target indicator starts to show
-            // (unless for buffs, they are always casted on self)
-            if (player.skills[skillIndex].category == "Buff")
-                player.CmdUseSkill(skillIndex);            
-            else
+            // (if required)
+            if (player.skills[skillIndex].showSelector)
                 player.wantedSkill = skillIndex;
+            else
+                player.CmdUseSkill(skillIndex);
         }
     }
 
@@ -45,11 +45,7 @@ public class UISkills : MonoBehaviour {
             // hotkey pressed and not typing in any input right now?
             if (Input.GetKeyDown(player.skillHotkeys[i]) && !UIUtils.AnyInputActive())
                 OnSkillClicked(player, i);
-            
-            // set state
-            slot.dragAndDropable.dragable = skill.learned;
-            // note: entries should be dropable at all times
-            
+
             // tooltip
             slot.tooltip.text = skill.ToolTip();
 
@@ -58,16 +54,11 @@ public class UISkills : MonoBehaviour {
             slot.image.color = skill.learned ? Color.white : Color.gray;
 
             // -> learnable?
-            if (!skill.learned &&
-                player.level >= skill.requiredLevel &&
-                player.SkillpointsSpendable() > 0) {
+            if (player.CanLearnSkill(skill)) {
                 slot.learnButton.gameObject.SetActive(true);
                 slot.learnButton.onClick.SetListener(() => { player.CmdLearnSkill(icopy); });
             // -> upgradeable?
-            } else if (skill.learned &&
-                       skill.level < skill.maxLevel &&
-                       player.level >= skill.upgradeRequiredLevel &&
-                       player.SkillpointsSpendable() > 0) {
+            } else if (player.CanUpgradeSkill(skill)) {
                 slot.learnButton.gameObject.SetActive(true);
                 slot.learnButton.onClick.SetListener(() => { player.CmdUpgradeSkill(icopy); });
             // -> otherwise no button needed

@@ -8,29 +8,31 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 86a8f8abd50882641946b6e97ea405f7, type: 3}
+  m_Script: {fileID: 11500000, guid: 1f56c07e7629e4304a6a3e18961596b7, type: 3}
   m_Name: Normal Attack (Skeleton)
   m_EditorClassIdentifier: 
-  category: Attack
   followupDefaultAttack: 0
-  tooltip: 
+  toolTip: 
   image: {fileID: 0}
-  levels:
-  - damage: 6
-    castTime: 1.467
-    cooldown: 0
-    castRange: 2.5
-    aoeRadius: 0
-    manaCosts: 0
-    healsHp: 0
-    healsMp: 0
-    buffTime: 0
-    buffsHpMax: 0
-    buffsMpMax: 0
-    buffsDamage: 0
-    buffsDefense: 0
-    buffsHpPercentPerSecond: 0
-    buffsMpPercentPerSecond: 0
-    projectile: {fileID: 0}
-    requiredLevel: 0
   learnDefault: 1
+  cancelCastIfTargetDied: 1
+  showSelector: 0
+  requiredLevel:
+    baseValue: 1
+    bonusPerLevel: 0
+  maxLevel: 1
+  manaCosts:
+    baseValue: 0
+    bonusPerLevel: 0
+  castTime:
+    baseValue: 1.467
+    bonusPerLevel: 0
+  cooldown:
+    baseValue: 0
+    bonusPerLevel: 0
+  castRange:
+    baseValue: 2.5
+    bonusPerLevel: 0
+  damage:
+    baseValue: 6
+    bonusPerLevel: 0

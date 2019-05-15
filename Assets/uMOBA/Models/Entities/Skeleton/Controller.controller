@@ -20,13 +20,13 @@ AnimatorController:
     m_DefaultInt: 0
     m_DefaultBool: 0
     m_Controller: {fileID: 0}
-  - m_Name: currentSkill
-    m_Type: 3
+  - m_Name: DEAD
+    m_Type: 4
     m_DefaultFloat: 0
-    m_DefaultInt: -1
+    m_DefaultInt: 0
     m_DefaultBool: 0
     m_Controller: {fileID: 0}
-  - m_Name: DEAD
+  - m_Name: Normal Attack (Skeleton)
     m_Type: 4
     m_DefaultFloat: 0
     m_DefaultInt: 0
@@ -55,8 +55,8 @@ AnimatorStateTransition:
   - m_ConditionMode: 1
     m_ConditionEvent: CASTING
     m_EventTreshold: 1.8
-  - m_ConditionMode: 6
-    m_ConditionEvent: currentSkill
+  - m_ConditionMode: 1
+    m_ConditionEvent: Normal Attack (Skeleton)
     m_EventTreshold: 0
   m_DstStateMachine: {fileID: 0}
   m_DstState: {fileID: 110241242}

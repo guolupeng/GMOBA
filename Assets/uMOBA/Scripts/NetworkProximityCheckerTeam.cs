@@ -37,23 +37,29 @@ public class NetworkProximityCheckerTeam : NetworkProximityChecker {
 
         // force hidden? then we are done here (we only have to ensure that the
         // player can still see itself)
-        if (forceHidden) return true;        
+        if (forceHidden) return true;
 
         // everyone in our team can see us
-        foreach (var p in Entity.teams[self.team]) {
-            var uv = p.GetComponent<NetworkIdentity>();
-            if (uv != null && uv.connectionToClient != null)
-                observers.Add(uv.connectionToClient);
+        foreach (Entity entity in Entity.teams[self.team]) {
+            // might be null if the player just disconnected
+            if (entity != null) {
+                var uv = entity.GetComponent<NetworkIdentity>();
+                if (uv != null && uv.connectionToClient != null)
+                    observers.Add(uv.connectionToClient);
+            }
         }
-        
+
         // are we observed by all OR does at least one enemy player/minion/...
         // see us? then add the whole enemy team
         var enemies = Entity.teams[self.team == Team.Evil ? Team.Good : Team.Evil];
         if (observedByAll || SeenByEnemy(enemies)) {
-            foreach (var e in enemies) {
-                var uv = e.GetComponent<NetworkIdentity>();
-                if (uv != null && uv.connectionToClient != null)
-                    observers.Add(uv.connectionToClient);
+            foreach (Entity enemy in enemies) {
+                // might be null if the player just disconnected
+                if (enemy != null) {
+                    var uv = enemy.GetComponent<NetworkIdentity>();
+                    if (uv != null && uv.connectionToClient != null)
+                        observers.Add(uv.connectionToClient);
+                }
             }
         }
 

@@ -40,6 +40,7 @@ GameObject:
   serializedVersion: 5
   m_Component:
   - component: {fileID: 422702}
+  - component: {fileID: 95133252839377252}
   - component: {fileID: 3393672}
   - component: {fileID: 2320340}
   - component: {fileID: 5449650}
@@ -180,28 +181,46 @@ MonoBehaviour:
   agent: {fileID: 0}
   proxchecker: {fileID: 114000012181695744}
   netIdentity: {fileID: 11448246}
-  animator: {fileID: 0}
+  animator: {fileID: 95133252839377252}
   collider: {fileID: 13664916}
   _state: IDLE
   level: 1
+  _healthMax:
+    baseValue: 200
+    bonusPerLevel: 0
   invincibleWhileAllAlive:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
   healthRecovery: 1
-  baseHealthRecoveryRate: 1
-  manaRecovery: 1
-  baseManaRecoveryRate: 1
+  _healthRecoveryRate:
+    baseValue: 1
+    bonusPerLevel: 0
+  _manaMax:
+    baseValue: 0
+    bonusPerLevel: 0
+  manaRecovery: 0
+  _manaRecoveryRate:
+    baseValue: 0
+    bonusPerLevel: 0
+  _damage:
+    baseValue: 40
+    bonusPerLevel: 0
+  _defense:
+    baseValue: 2
+    bonusPerLevel: 0
+  _blockChance:
+    baseValue: 0
+    bonusPerLevel: 0
+  _criticalChance:
+    baseValue: 0
+    bonusPerLevel: 0
   team: 0
   damagePopupPrefab: {fileID: 1000011210596470, guid: f311fc9ca8f3748a0ade3f7d107c0e0a,
     type: 2}
   skillTemplates:
-  - {fileID: 11400000, guid: 78cf1f5dfca774259942e0351d9d4da3, type: 2}
-  _healthMax: 200
-  baseDamage: 40
-  baseDefense: 2
-  baseBlockChance: 0
-  baseCritChance: 0
+  - {fileID: 11400000, guid: b50b98f2414a04538b5dc3b5d975b7a4, type: 2}
+  _effectMount: {fileID: 487040}
   rewardExperience: 20
   rewardGold: 20
 --- !u!114 &11448246
@@ -448,6 +467,23 @@ MeshFilter:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1601072953385250}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!95 &95133252839377252
+Animator:
+  serializedVersion: 3
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 191340}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 0}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
 --- !u!102 &102000011954420234
 TextMesh:
   serializedVersion: 3

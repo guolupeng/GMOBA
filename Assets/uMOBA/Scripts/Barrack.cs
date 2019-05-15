@@ -4,23 +4,6 @@ using UnityEngine.Networking;
 using UnityEngine.Serialization;
 
 public class Barrack : Entity {
-    [Header("Health")]
-    [SerializeField] int _healthMax = 400;
-    public override int healthMax { get { return _healthMax; } }
-    public override int manaMax { get { return 0; } }
-
-    // other properties
-    [Header("Damage & Defense")]
-    [SyncVar] public int baseDefense = 4;
-    public override int defense { get { return baseDefense; } }
-
-    public override int damage { get { return 0; } }
-
-    [SyncVar] public int baseBlockChance = 0;
-    public override float blockChance { get { return baseBlockChance; } }
-    
-    public override float criticalChance { get { return 0; } }
-
     [Header("Reward")]
     public long rewardExperience = 40;
     public int rewardGold = 40;
@@ -47,11 +30,11 @@ public class Barrack : Entity {
             // we died.
             OnDeath();
             return "DEAD";
-        }        
+        }
 
         return "IDLE"; // nothing interesting happened
     }
-        
+
     [Server]
     string UpdateServer_DEAD() {
         // events sorted by priority (e.g. target doesn't matter if we died)
@@ -78,5 +61,5 @@ public class Barrack : Entity {
     }
 
     // skills //////////////////////////////////////////////////////////////////
-    public override bool CanAttackType(System.Type type) { return false; }
+    public override bool CanAttack(Entity entity) { return false; }
 }

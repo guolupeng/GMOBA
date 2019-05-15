@@ -17,6 +17,11 @@ public class Utils {
         return keys.Any(k => Input.GetKeyDown(k));
     }
 
+    // is any of the keys PRESSED?
+    public static bool AnyKeyPressed(KeyCode[] keys) {
+        return keys.Any(k => Input.GetKey(k));
+    }
+
     // detect headless mode (which has graphicsDeviceType Null)
     public static bool IsHeadless() {
         return SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null;

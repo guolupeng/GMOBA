@@ -23,6 +23,9 @@
 // when having lots of FPS(300+) if the Rigidbody's Interpolate option is
 // enabled. So for now it's important to disable Interpolation - which is a good
 // idea in general to increase performance.
+using System.Collections.Generic;
+using System.Linq;
+using System;
 using UnityEngine;
 #if UNITY_5_5_OR_NEWER // for people that didn't upgrade to 5.5. yet
 using UnityEngine.AI;
@@ -30,9 +33,6 @@ using UnityEngine.AI;
 using UnityEngine.Serialization;
 using UnityEngine.Networking;
 using UnityEngine.UI;
-using System.Collections.Generic;
-using System.Linq;
-using System;
 
 // Team Enum (we use an enum instead of a string so that changing a team name
 // will force us to update the code in all places)
@@ -57,12 +57,8 @@ public abstract class Entity : NetworkBehaviour {
     [SyncVar, SerializeField] string _state = "IDLE";
     public string state { get { return _state; } }
 
-    // [SyncVar] NetworkIdentity: errors when null
-    // [SyncVar] Entity: SyncVar only works for simple types
-    // [SyncVar] GameObject is the only solution where we don't need a custom
-    //           synchronization script (needs NetworkIdentity component!)
-    // -> we still wrap it with a property for easier access, so we don't have
-    //    to use target.GetComponent<Entity>() everywhere
+    // 'Entity' can't be SyncVar and NetworkIdentity causes errors when null,
+    // so we use [SyncVar] GameObject and wrap it for simplicity
     [Header("Target")]
     [SyncVar] GameObject _target;
     public Entity target {
@@ -74,43 +70,98 @@ public abstract class Entity : NetworkBehaviour {
     [SyncVar] public int level = 1;
 
     [Header("Health")]
+    [SerializeField] protected LevelBasedInt _healthMax = new LevelBasedInt{baseValue=100};
+    public virtual int healthMax {
+        get {
+            // base + buffs
+            int buffBonus = buffs.Sum(buff => buff.buffsHealthMax);
+            return _healthMax.Get(level) + buffBonus;
+        }
+    }
     [SyncVar] int _health = 1;
     public int health {
         get { return Mathf.Min(_health, healthMax); } // min in case hp>hpmax after buff ends etc.
         set { _health = Mathf.Clamp(value, 0, healthMax); }
     }
-    public abstract int healthMax{ get; }
+
     public Entity[] invincibleWhileAllAlive; // base invincible while barracks exist etc.
     public bool healthRecovery = true; // can be disabled in combat etc.
-    public int baseHealthRecoveryRate = 1;
-    public int healthRecoveryRate {
+    [SerializeField] protected LevelBasedInt _healthRecoveryRate = new LevelBasedInt{baseValue=1};
+    public virtual int healthRecoveryRate {
         get {
             // base + buffs
-            float buffPercent = (from skill in skills
-                                 where skill.BuffTimeRemaining() > 0
-                                 select skill.buffsHealthPercentPerSecond).Sum();
-            return baseHealthRecoveryRate + Convert.ToInt32(buffPercent * healthMax);
+            float buffPercent = buffs.Sum(buff => buff.buffsHealthPercentPerSecond);
+            return _healthRecoveryRate.Get(level) + Convert.ToInt32(buffPercent * healthMax);
         }
     }
 
     [Header("Mana")]
+    [SerializeField] protected LevelBasedInt _manaMax = new LevelBasedInt{baseValue=100};
+    public virtual int manaMax {
+        get {
+            // base + buffs
+            int buffBonus = buffs.Sum(buff => buff.buffsManaMax);
+            return _manaMax.Get(level) + buffBonus;
+        }
+    }
     [SyncVar] int _mana = 1;
     public int mana {
         get { return Mathf.Min(_mana, manaMax); } // min in case hp>hpmax after buff ends etc.
         set { _mana = Mathf.Clamp(value, 0, manaMax); }
     }
-    public abstract int manaMax{ get; }
+
     public bool manaRecovery = true; // can be disabled in combat etc.
-    public int baseManaRecoveryRate = 1;
+    [SerializeField] protected LevelBasedInt _manaRecoveryRate = new LevelBasedInt{baseValue=1};
     public int manaRecoveryRate {
         get {
             // base + buffs
-            float buffPercent = (from skill in skills
-                                 where skill.BuffTimeRemaining() > 0
-                                 select skill.buffsManaPercentPerSecond).Sum();
-            return baseManaRecoveryRate + Convert.ToInt32(buffPercent * manaMax);
+            float buffPercent = buffs.Sum(buff => buff.buffsManaPercentPerSecond);
+            return _manaRecoveryRate.Get(level) + Convert.ToInt32(buffPercent * manaMax);
         }
     }
+
+    [Header("Damage")]
+    [SerializeField] protected LevelBasedInt _damage = new LevelBasedInt{baseValue=1};
+    public virtual int damage {
+        get {
+            // base + buffs
+            int buffBonus = buffs.Sum(buff => buff.buffsDamage);
+            return _damage.Get(level) + buffBonus;
+        }
+    }
+
+    [Header("Defense")]
+    [SerializeField] protected LevelBasedInt _defense = new LevelBasedInt{baseValue=1};
+    public virtual int defense {
+        get {
+            // base + buffs
+            int buffBonus = buffs.Sum(buff => buff.buffsDefense);
+            return _defense.Get(level) + buffBonus;
+        }
+    }
+
+    [Header("Block")]
+    [SerializeField] protected LevelBasedFloat _blockChance;
+    public virtual float blockChance {
+        get {
+            // base + buffs
+            float buffBonus = buffs.Sum(buff => buff.buffsBlockChance);
+            return _blockChance.Get(level) + buffBonus;
+        }
+    }
+
+    [Header("Critical")]
+    [SerializeField] protected LevelBasedFloat _criticalChance;
+    public virtual float criticalChance {
+        get {
+            // base + buffs
+            float buffBonus = buffs.Sum(buff => buff.buffsCriticalChance);
+            return _criticalChance.Get(level) + buffBonus;
+        }
+    }
+
+    // speed wrapper
+    public float speed { get { return agent.speed; } }
 
     [Header("Team")] // to only attack different team etc.
     [SyncVar] public Team team = Team.Good;
@@ -118,21 +169,22 @@ public abstract class Entity : NetworkBehaviour {
     [Header("Popups")]
     public GameObject damagePopupPrefab;
 
-    // other properties
-    public float speed { get{ return agent.speed; } }
-    public abstract int damage { get; }
-    public abstract int defense { get; }
-    public abstract float blockChance { get; }
-    public abstract float criticalChance { get; }
-
     // skill system for all entities (players, monsters, npcs, towers, ...)
     // 'skillTemplates' are the available skills (first one is default attack)
     // 'skills' are the loaded skills with cooldowns etc.
-    [Header("Skills, Buffs, Status Effects")]
+    [Header("Skills & Buffs")]
     public SkillTemplate[] skillTemplates;
     public SyncListSkill skills = new SyncListSkill();
+    public SyncListBuff buffs = new SyncListBuff(); // active buffs
     // current skill (synced because we need it as an animation parameter)
     [SyncVar] protected int currentSkill = -1;
+
+    // effect mount is where the arrows/fireballs/etc. are spawned
+    // -> can be overwritten, e.g. for mages to set it to the weapon's effect
+    //    mount
+    // -> assign to right hand if in doubt!
+    [SerializeField] Transform _effectMount;
+    public virtual Transform effectMount { get { return _effectMount; } }
 
     // cache team members to avoid FindObjectsOfType usage
     // for NetworkProximityCheckerTeam and FogOfWar, which would be very costly
@@ -188,6 +240,7 @@ public abstract class Entity : NetworkBehaviour {
         // one is around.
         if (isClient) UpdateClient();
         if (isServer) {
+            CleanupBuffs();
             // clear target if it's hidden to avoid all kinds of weird cases
             // where we might still be targeting respawning monsters etc.
             if (target != null && target.IsHidden()) target = null;
@@ -274,88 +327,68 @@ public abstract class Entity : NetworkBehaviour {
 
     // combat //////////////////////////////////////////////////////////////////
     // no need to instantiate damage popups on the server
+    // -> passing the GameObject and calculating the position on the client
+    //    saves server computations and takes less bandwidth (4 instead of 12 byte)
     enum PopupType { Normal, Block, Crit };
+
     [ClientRpc(channel=Channels.DefaultUnreliable)] // unimportant => unreliable
-    void RpcShowDamagePopup(PopupType popupType, int amount, Vector3 position) {
+    void RpcShowDamagePopup(GameObject damageReceiver, PopupType popupType, int amount) {
         // spawn the damage popup (if any) and set the text
         // (-1 = block)
-        if (damagePopupPrefab) {
-            var popup = Instantiate(damagePopupPrefab, position, Quaternion.identity);
-            if (popupType == PopupType.Normal)
-                popup.GetComponentInChildren<TextMesh>().text = amount.ToString();
-            else if (popupType == PopupType.Block)
-                popup.GetComponentInChildren<TextMesh>().text = "<i>Block!</i>";
-            else if (popupType == PopupType.Crit)
-                popup.GetComponentInChildren<TextMesh>().text = amount + " Crit!";
+        if (damageReceiver != null) { // still around?
+            Entity receiverEntity = damageReceiver.GetComponent<Entity>();
+            if (receiverEntity != null && receiverEntity.damagePopupPrefab != null) {
+                // showing it above their head looks best, and we don't have to use
+                // a custom shader to draw world space UI in front of the entity
+                var bounds = receiverEntity.collider.bounds;
+                Vector3 position = new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
+
+                var popup = Instantiate(receiverEntity.damagePopupPrefab, position, Quaternion.identity);
+                if (popupType == PopupType.Normal)
+                    popup.GetComponentInChildren<TextMesh>().text = amount.ToString();
+                else if (popupType == PopupType.Block)
+                    popup.GetComponentInChildren<TextMesh>().text = "<i>Block!</i>";
+                else if (popupType == PopupType.Crit)
+                    popup.GetComponentInChildren<TextMesh>().text = amount + " Crit!";
+            }
         }
     }
 
     // deal damage at another entity
     // (can be overwritten for players etc. that need custom functionality)
-    // (can also return the set of entities that were hit, just in case they are
-    //  needed when overwriting it etc.)
     [Server]
-    public virtual HashSet<Entity> DealDamageAt(Entity entity, int amount, float aoeRadius=0) {
-        // build the set of entities that were hit within AoE range
-        var entities = new HashSet<Entity>();
+    public virtual void DealDamageAt(Entity entity, int amount) {
+        int damageDealt = 0;
+        var popupType = PopupType.Normal;
 
-        // add main target in any case, because non-AoE skills have radius=0
-        entities.Add(entity);
+        // don't deal any damage if entity is invincible
+        if (!entity.IsInvincible()) {
+            // block? (we use < not <= so that block rate 0 never blocks)
+            if (UnityEngine.Random.value < entity.blockChance) {
+                popupType = PopupType.Block;
+            // deal damage
+            } else {
+                // subtract defense (but leave at least 1 damage, otherwise
+                // it may be frustrating for weaker players)
+                damageDealt = Mathf.Max(amount - entity.defense, 1);
 
-        // add all targets in AoE radius around main target
-        var colliders = Physics.OverlapSphere(entity.transform.position, aoeRadius); //, layerMask);
-        foreach (var co in colliders) {
-            var candidate = co.GetComponentInParent<Entity>();
-            // overlapsphere cast uses the collider's bounding volume (see
-            // Unity scripting reference), hence is often not exact enough
-            // in our case (especially for radius 0.0). let's also check the
-            // distance to be sure.
-            if (candidate != null && candidate != this && candidate.health > 0 &&
-                Vector3.Distance(entity.transform.position, candidate.transform.position) < aoeRadius)
-                entities.Add(candidate);
-        }
-
-        // now deal damage at each of them
-        foreach (var e in entities) {
-            int damageDealt = 0;
-            var popupType = PopupType.Normal;
-
-            // don't deal any damage if invincible (but show popup = 0)
-            if (!e.IsInvincible()) {
-                // block? (we use < not <= so that block rate 0 never blocks)
-                if (UnityEngine.Random.value < e.blockChance) {
-                    popupType = PopupType.Block;
-                // just deal damage
-                } else {
-                    // subtract defense (but leave at least 1 damage, otherwise
-                    // it may be frustrating for weaker players)
-                    damageDealt = Mathf.Max(amount - e.defense, 1);
-
-                    // critical hit?
-                    if (UnityEngine.Random.value < criticalChance) {
-                        damageDealt *= 2;
-                        popupType = PopupType.Crit;
-                    }
-
-                    // deal the damage
-                    e.health -= damageDealt;
+                // critical hit?
+                if (UnityEngine.Random.value < criticalChance) {
+                    damageDealt *= 2;
+                    popupType = PopupType.Crit;
                 }
+
+                // deal the damage
+                entity.health -= damageDealt;
             }
-
-            // show damage popup in observers via ClientRpc
-            // showing them above their head looks best, and we don't have to
-            // use a custom shader to draw world space UI in front of the entity
-            // note: we send the RPC to ourselves because whatever we killed
-            //       might disappear before the rpc reaches it
-            var bounds = e.collider.bounds;
-            RpcShowDamagePopup(popupType, damageDealt, new Vector3(bounds.center.x, bounds.max.y, bounds.center.z));
-
-            // let's make sure to pull aggro in any case so that archers
-            // are still attacked if they are outside of the aggro range
-            e.OnAggro(this);
         }
 
-        return entities;
+        // show damage popup in observers via ClientRpc
+        RpcShowDamagePopup(entity.gameObject, popupType, damageDealt);
+
+        // let's make sure to pull aggro in any case so that archers
+        // are still attacked if they are outside of the aggro range
+        entity.OnAggro(this);
     }
 
     // recovery ////////////////////////////////////////////////////////////////
@@ -377,10 +410,11 @@ public abstract class Entity : NetworkBehaviour {
     public virtual void OnAggro(Entity entity) {}
 
     // skill system ////////////////////////////////////////////////////////////
-    // we can't have a public array of types that we can modify in the Inspector
-    // so we need an abstract function to check if players can attack players,
-    // monsters, npcs etc.
-    public abstract bool CanAttackType(Type type);
+    // we need an abstract function to check if an entity can attack another,
+    // e.g. if player can attack monster / pet / npc, ...
+    // => we don't just compare the type because other things like 'is own pet'
+    //    etc. matter too
+    public abstract bool CanAttack(Entity entity);
 
     // the first check validates the caster
     // (the skill won't be ready if we check self while casting it. so the
@@ -394,76 +428,30 @@ public abstract class Entity : NetworkBehaviour {
 
     // the second check validates the target and corrects it for the skill if
     // necessary (e.g. when trying to heal an npc, it sets target to self first)
+    // (skill shots that don't need a target will just return true if the user
+    //  wants to cast them at a valid position)
     public bool CastCheckTarget(Skill skill) {
-        // attack: target exists, alive, not self, different team, oktype
-        // (we can't have a public array of types that we can modify
-        //  in the Inspector, so we need an abstract function)
-        if (skill.category == "Attack") {
-            return target != null &&
-                   target != this &&
-                   target.health > 0 &&
-                   target.team != team &&
-                   CanAttackType(target.GetType());
-        // heal: on target? (if exists, not self, team, type) or self
-        } else if (skill.category == "Heal") {
-            if (target != null &&
-                target != this &&
-                target.team == team &&
-                target.GetType() == GetType()) {
-                // can only heal the target if it's not dead
-                return target.health > 0;
-            // otherwise we want to heal ourselves, which is always allowed
-            // (we already checked if we are alive in castcheckself)
-            } else {
-                target = this;
-                return true;
-            }
-        // buff: only buff self => ok
-        } else if (skill.category == "Buff") {
-            target = this;
-            return true;
-        }
-        // otherwise the category is invalid
-        Debug.LogWarning("invalid skill category for: " + skill.name);
-        return false;
+        return skill.CheckTarget(this);
     }
 
     // the third check validates the distance between the caster and the target
-    // (in case of buffs etc., the target was already corrected to 'self' by
-    //  castchecktarget, hence we don't have to worry about anything here)
-    public bool CastCheckDistance(Skill skill) {
-        return target != null &&
-               Utils.ClosestDistance(collider, target.collider) <= skill.castRange;
+    // (target entity or target position in case of skill shots)
+    // note: castchecktarget already corrected the target (if any), so we don't
+    //       have to worry about that anymore here
+    public bool CastCheckDistance(Skill skill, out Vector3 destination) {
+        return skill.CheckDistance(this, out destination);
     }
 
     // casts the skill. casting and waiting has to be done in the state machine
     public void CastSkill(Skill skill) {
-        // check self again (alive, mana, weapon etc.). ignoring the skill cd
-        // and check target again
+        // * check if we can currently cast a skill (enough mana etc.)
+        // * check if we can cast THAT skill on THAT target
         // note: we don't check the distance again. the skill will be cast even
-        // if the target walked a bit while we casted it (it's simply better
-        // gameplay and less frustrating)
+        //   if the target walked a bit while we casted it (it's simply better
+        //   gameplay and less frustrating)
         if (CastCheckSelf(skill, false) && CastCheckTarget(skill)) {
-            // do the logic in here or let the skill effect take care of it?
-            if (skill.effectPrefab == null || skill.effectPrefab.isPurelyVisual) {
-                // attack
-                if (skill.category == "Attack") {
-                    // deal damage directly
-                    DealDamageAt(target, damage + skill.damage, skill.aoeRadius);
-                // heal
-                } else if (skill.category == "Heal") {
-                    // note: 'target alive' checks were done above already
-                    target.health += skill.healsHealth;
-                    target.mana += skill.healsMana;
-                // buff
-                } else if (skill.category == "Buff") {
-                    // set the buff end time (the rest is done in .damage etc.)
-                    skill.buffTimeEnd = Time.time + skill.buffTime;
-                }
-            }
-
-            // spawn the skill effect (if any)
-            SpawnSkillEffect(currentSkill, target);
+            // let the skill template handle the action
+            skill.Apply(this);
 
             // decrease mana in any case
             mana -= skill.manaCosts;
@@ -479,32 +467,20 @@ public abstract class Entity : NetworkBehaviour {
         }
     }
 
-    public void SpawnSkillEffect(int skillIndex, Entity effectTarget) {
-        // spawn the skill effect. this can be used for anything ranging from
-        // blood splatter to arrows to chain lightning.
-        // -> we need to call an RPC anyway, it doesn't make much of a diff-
-        //    erence if we use NetworkServer.Spawn for everything.
-        // -> we try to spawn it at the weapon's projectile mount
-        var skill = skills[skillIndex];
-        if (skill.effectPrefab != null) {
-            var mount = transform.FindRecursively("EffectMount");
-            var position = mount != null ? mount.position : transform.position;
-            var go = Instantiate(skill.effectPrefab.gameObject, position, Quaternion.identity);
-            var effect = go.GetComponent<SkillEffect>();
-            effect.target = effectTarget;
-            effect.caster = this;
-            effect.skillIndex = skillIndex;
-            NetworkServer.Spawn(go);
-        }
+    // helper function to add or refresh a buff
+    public void AddOrRefreshBuff(Buff buff) {
+        // reset if already in buffs list, otherwise add
+        int index = buffs.FindIndex(b => b.name == buff.name);
+        if (index != -1) buffs[index] = buff;
+        else buffs.Add(buff);
     }
 
-    // helper function to stop all buffs if needed (e.g. in OnDeath)
-    public void StopBuffs() {
-        for (int i = 0; i < skills.Count; ++i) {
-            if (skills[i].category == "Buff") { // not for Murder status etc.
-                var skill = skills[i];
-                skill.buffTimeEnd = Time.time;
-                skills[i] = skill;
+    // helper function to remove all buffs that ended
+    void CleanupBuffs() {
+        for (int i = 0; i < buffs.Count; ++i) {
+            if (buffs[i].BuffTimeRemaining() == 0) {
+                buffs.RemoveAt(i);
+                --i;
             }
         }
     }

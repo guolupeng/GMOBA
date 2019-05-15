@@ -360,8 +360,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   button: 0
   drageePrefab: {fileID: 136608, guid: d3cde8f814cb343c3be7c1a26745221c, type: 2}
-  dragable: 1
-  dropable: 1
+  dragable: 0
+  dropable: 0
   draggedToSlot: 0
 --- !u!114 &11459286
 MonoBehaviour:
@@ -414,6 +414,7 @@ MonoBehaviour:
   m_PreferredHeight: 18
   m_FlexibleWidth: -1
   m_FlexibleHeight: -1
+  m_LayoutPriority: 1
 --- !u!114 &11463424
 MonoBehaviour:
   m_ObjectHideFlags: 1

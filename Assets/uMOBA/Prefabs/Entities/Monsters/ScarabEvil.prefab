@@ -1284,22 +1284,39 @@ MonoBehaviour:
   collider: {fileID: 13634238}
   _state: IDLE
   level: 1
+  _healthMax:
+    baseValue: 30
+    bonusPerLevel: 0
   invincibleWhileAllAlive: []
   healthRecovery: 1
-  baseHealthRecoveryRate: 1
+  _healthRecoveryRate:
+    baseValue: 1
+    bonusPerLevel: 0
+  _manaMax:
+    baseValue: 30
+    bonusPerLevel: 0
   manaRecovery: 1
-  baseManaRecoveryRate: 1
+  _manaRecoveryRate:
+    baseValue: 1
+    bonusPerLevel: 0
+  _damage:
+    baseValue: 10
+    bonusPerLevel: 0
+  _defense:
+    baseValue: 2
+    bonusPerLevel: 0
+  _blockChance:
+    baseValue: 0
+    bonusPerLevel: 0
+  _criticalChance:
+    baseValue: 0
+    bonusPerLevel: 0
   team: 1
   damagePopupPrefab: {fileID: 1000011210596470, guid: f311fc9ca8f3748a0ade3f7d107c0e0a,
     type: 2}
   skillTemplates:
-  - {fileID: 11400000, guid: 90ef686d3093a497788e5765e3c6fc5b, type: 2}
-  _healthMax: 30
-  _manaMax: 30
-  _damage: 10
-  _defense: 2
-  _blockChance: 0
-  _criticalChance: 0
+  - {fileID: 11400000, guid: dd30c5a8e3b94463cb153ad33934a87d, type: 2}
+  _effectMount: {fileID: 427880}
   followDistance: 10
   goal: {fileID: 0}
   rewardExperience: 10

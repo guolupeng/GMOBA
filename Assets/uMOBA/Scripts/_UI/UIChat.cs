@@ -70,9 +70,14 @@ public class UIChat : MonoBehaviour {
 
 
     public void AddMessage(MessageInfo msg) {
-        // delete an old message if we have too many
-        if (content.childCount >= keepHistory)
-            Destroy(content.GetChild(0).gameObject);
+        // delete old messages so the UI doesn't eat too much performance.
+        // => every Destroy call causes a lag because of a UI rebuild
+        // => it's best to destroy a lot of messages at once so we don't
+        //    experience that lag after every new chat message
+        if (content.childCount >= keepHistory) {
+            for (int i = 0; i < content.childCount / 2; ++i)
+                Destroy(content.GetChild(i).gameObject);
+        }
 
         // reshow all previous messages (without the new one yet, it will be
         // shown by default)

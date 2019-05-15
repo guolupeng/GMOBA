@@ -7,5 +7,7 @@ EditorBuildSettings:
   m_Scenes:
   - enabled: 1
     path: Assets/uMOBA/Scenes/Lobby.unity
+    guid: d533e608f43ae40af832ee18cedf4f3b
   - enabled: 1
     path: Assets/uMOBA/Scenes/World.unity
+    guid: a11831025daca24449ab977327654930

@@ -40,20 +40,6 @@ public class Player : Entity {
     [Header("Components")]
     public Chat chat;
 
-    // level based stats
-    [System.Serializable]
-    public class PlayerLevel {
-        public int healthMax = 100;
-        public int manaMax = 100;
-        public long experienceMax = 10;
-        public int baseDamage = 1;
-        public int baseDefense = 1;
-        [Range(0, 1)] public float baseBlockChance;
-        [Range(0, 1)] public float baseCriticalChance;
-    }
-    [Header("Level based Stats")]
-    public PlayerLevel[] levels = { new PlayerLevel() }; // default
-
     // health
     public override int healthMax {
         get {
@@ -62,13 +48,8 @@ public class Player : Entity {
                              where item.valid
                              select item.equipHealthBonus).Sum();
 
-            // calculate buff bonus
-            int buffBonus = (from skill in skills
-                             where skill.BuffTimeRemaining() > 0
-                             select skill.buffsHealthMax).Sum();
-
-            // return base + attribute + equip + buffs
-            return levels[level-1].healthMax + itemBonus + buffBonus;
+            // base (health + buff) + items
+            return base.healthMax + itemBonus;
         }
     }
 
@@ -80,18 +61,12 @@ public class Player : Entity {
                              where item.valid
                              select item.equipManaBonus).Sum();
 
-            // calculate buff bonus
-            int buffBonus = (from skill in skills
-                             where skill.BuffTimeRemaining() > 0
-                             select skill.buffsManaMax).Sum();
-
-            // return base + attribute + equip + buffs
-            return levels[level-1].manaMax + itemBonus + buffBonus;
+            // base (mana + buff) + items
+            return base.manaMax + itemBonus;
         }
     }
 
     // damage
-    public int baseDamage { get { return levels[level-1].baseDamage; } }
     public override int damage {
         get {
             // calculate item bonus
@@ -99,18 +74,12 @@ public class Player : Entity {
                              where item.valid
                              select item.equipDamageBonus).Sum();
 
-            // calculate buff bonus
-            int buffBonus = (from skill in skills
-                             where skill.BuffTimeRemaining() > 0
-                             select skill.buffsDamage).Sum();
-
-            // return base + equip + buffs
-            return baseDamage + itemBonus + buffBonus;
+            // base (damage + buff) + items
+            return base.damage + itemBonus;
         }
     }
 
     // defense
-    public int baseDefense { get { return levels[level-1].baseDefense; } }
     public override int defense {
         get {
             // calculate item bonus
@@ -118,18 +87,12 @@ public class Player : Entity {
                              where item.valid
                              select item.equipDefenseBonus).Sum();
 
-            // calculate buff bonus
-            int buffBonus = (from skill in skills
-                             where skill.BuffTimeRemaining() > 0
-                             select skill.buffsDefense).Sum();
-
-            // return base + equip + buffs
-            return baseDefense + itemBonus + buffBonus;
+            // base (defense + buff) + items
+            return base.defense + itemBonus;
         }
     }
 
     // block
-    public float baseBlockChance { get { return levels[level-1].baseBlockChance; } }
     public override float blockChance {
         get {
             // calculate item bonus
@@ -137,18 +100,12 @@ public class Player : Entity {
                                where item.valid
                                select item.equipBlockChanceBonus).Sum();
 
-            // calculate buff bonus
-            float buffBonus = (from skill in skills
-                               where skill.BuffTimeRemaining() > 0
-                               select skill.buffsBlockChance).Sum();
-
-            // return base + equip + buffs
-            return baseBlockChance + itemBonus + buffBonus;
+            // base (block + buff) + items
+            return base.blockChance + itemBonus;
         }
     }
 
     // crit
-    public float baseCriticalChance { get { return levels[level-1].baseCriticalChance; } }
     public override float criticalChance {
         get {
             // calculate item bonus
@@ -156,17 +113,13 @@ public class Player : Entity {
                                where item.valid
                                select item.equipCriticalChanceBonus).Sum();
 
-            // calculate buff bonus
-            float buffBonus = (from skill in skills
-                               where skill.BuffTimeRemaining() > 0
-                               select skill.buffsCriticalChance).Sum();
-
-            // return base + equip + buffs
-            return baseCriticalChance + itemBonus + buffBonus;
+            // base (critical + buff) + items
+            return base.criticalChance + itemBonus;
         }
     }
 
     [Header("Experience")] // note: int is not enough (can have > 2 mil. easily)
+    public int maxLevel = 1;
     [SyncVar, SerializeField] long _experience = 0;
     public long experience {
         get { return _experience; }
@@ -181,7 +134,7 @@ public class Player : Entity {
 
                 // now see if we leveled up (possibly more than once too)
                 // (can't level up if already max level)
-                while (_experience >= experienceMax && level < levels.Length) {
+                while (_experience >= experienceMax && level < maxLevel) {
                     // subtract current level's required exp, then level up
                     _experience -= experienceMax;
                     ++level;
@@ -192,7 +145,8 @@ public class Player : Entity {
             }
         }
     }
-    public long experienceMax { get { return levels[level-1].experienceMax; } }
+    [SerializeField] protected LevelBasedLong _experienceMax = new LevelBasedLong{baseValue=10, bonusPerLevel=10};
+    public long experienceMax { get { return _experienceMax.Get(level); } }
 
     [Header("Indicator")]
     public GameObject indicatorPrefab;
@@ -203,6 +157,7 @@ public class Player : Entity {
     public SyncListItem inventory = new SyncListItem();
     public ItemTemplate[] defaultItems;
     public KeyCode[] inventoryHotkeys = new KeyCode[] {KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3, KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6};
+    public KeyCode[] inventorySplitKeys = {KeyCode.LeftShift, KeyCode.RightShift};
 
     [Header("Gold")] // note: int is not enough (can have > 2 mil. easily)
     [SerializeField, SyncVar] long _gold = 0;
@@ -218,6 +173,7 @@ public class Player : Entity {
     [Header("Interaction")]
     public float interactionRange = 4;
     public KeyCode focusKey = KeyCode.Space;
+    public bool localPlayerClickThrough = true; // click selection goes through localplayer. feels best.
 
     [Header("Popups")]
     public GameObject goldPopupPrefab;
@@ -237,7 +193,7 @@ public class Player : Entity {
     int nextSkill = -1;
 
     // the next target to be set if we try to set it while casting
-    Entity nextTarget = null;
+    Entity nextTarget;
 
     // the selected skill that is pending while the player selects a target
     [HideInInspector] public int wantedSkill = -1; // client sided
@@ -276,10 +232,14 @@ public class Player : Entity {
         // => only play moving animation while the agent is actually moving. the
         //    MOVING state might be delayed to due latency or we might be in
         //    MOVING while a path is still pending, etc.
+        // => skill names are assumed to be boolean parameters in animator
+        //    so we don't need to worry about an animation number etc.
         animator.SetBool("MOVING", state == "MOVING" && agent.velocity != Vector3.zero);
         animator.SetBool("CASTING", state == "CASTING");
-        animator.SetInteger("currentSkill", currentSkill);
         animator.SetBool("DEAD", state == "DEAD");
+        foreach (Skill skill in skills)
+            if (skill.learned)
+                animator.SetBool(skill.name, skill.CastTimeRemaining() > 0);
     }
 
     // note: this function isn't called if it has a [ClientCallback] tag, so we
@@ -373,7 +333,8 @@ public class Player : Entity {
             nextTarget = target; // return to this one after any corrections by CastCheckTarget
             if (CastCheckSelf(skill) && CastCheckTarget(skill)) {
                 // check distance between self and target
-                if (CastCheckDistance(skill)) {
+                Vector3 destination;
+                if (CastCheckDistance(skill, out destination)) {
                     // start casting and set the casting end time
                     skill.castTimeEnd = Time.time + skill.castTime;
                     skills[currentSkill] = skill;
@@ -382,7 +343,7 @@ public class Player : Entity {
                     // move to the target first
                     // (use collider point(s) to also work with big entities)
                     agent.stoppingDistance = skill.castRange;
-                    agent.destination = target.collider.ClosestPointOnBounds(transform.position);
+                    agent.destination = destination;
                     return "MOVING";
                 }
             } else {
@@ -434,7 +395,8 @@ public class Player : Entity {
             nextTarget = target; // return to this one after any corrections by CastCheckTarget
             if (CastCheckSelf(skill) && CastCheckTarget(skill)) {
                 // check distance between self and target
-                if (CastCheckDistance(skill)) {
+                Vector3 destination;
+                if (CastCheckDistance(skill, out destination)) {
                     // stop moving, start casting and set the casting end time
                     agent.ResetPath();
                     skill.castTimeEnd = Time.time + skill.castTime;
@@ -444,7 +406,7 @@ public class Player : Entity {
                     // keep moving towards the target
                     // (use collider point(s) to also work with big entities)
                     agent.stoppingDistance = skill.castRange;
-                    agent.destination = target.collider.ClosestPointOnBounds(transform.position);
+                    agent.destination = destination;
                     return "MOVING";
                 }
             } else {
@@ -462,16 +424,31 @@ public class Player : Entity {
         return "MOVING"; // nothing interesting happened
     }
 
+    void UseNextTargetIfAny() {
+        // use next target if the user tried to target another while casting
+        // (target is locked while casting so skill isn't applied to an invalid
+        //  target accidentally)
+        if (nextTarget != null) {
+            target = nextTarget;
+            nextTarget = null;
+        }
+    }
+
     [Server]
     string UpdateServer_CASTING() {
         // keep looking at the target for server & clients (only Y rotation)
         if (target) LookAtY(target.transform.position);
 
         // events sorted by priority (e.g. target doesn't matter if we died)
+        //
+        // IMPORTANT: nextTarget might have been set while casting, so make sure
+        // to handle it in any case here. it should definitely be null again
+        // after casting was finished.
         if (EventDied()) {
             // we died.
             OnDeath();
             currentSkill = nextSkill = -1; // in case we died while trying to cast
+            UseNextTargetIfAny(); // if user selected a new target while casting
             return "DEAD";
         }
         if (EventNavigateTo()) {
@@ -479,24 +456,28 @@ public class Player : Entity {
             currentSkill = nextSkill = -1;
             agent.stoppingDistance = navigateStop;
             agent.destination = navigatePos;
+            UseNextTargetIfAny(); // if user selected a new target while casting
             return "MOVING";
         }
         if (EventCancelAction()) {
             // cancel casting
             currentSkill = nextSkill = -1;
+            UseNextTargetIfAny(); // if user selected a new target while casting
             return "IDLE";
         }
         if (EventTargetDisappeared()) {
-            // cancel if we were trying to cast an attack skill
-            if (skills[currentSkill].category == "Attack") {
+            // cancel if the target matters for this skill
+            if (skills[currentSkill].cancelCastIfTargetDied) {
                 currentSkill = nextSkill = -1;
+                UseNextTargetIfAny(); // if user selected a new target while casting
                 return "IDLE";
             }
         }
         if (EventTargetDied()) {
-            // cancel if we were trying to cast an attack skill
-            if (skills[currentSkill].category == "Attack") {
+            // cancel if the target matters for this skill
+            if (skills[currentSkill].cancelCastIfTargetDied) {
                 currentSkill = nextSkill = -1;
+                UseNextTargetIfAny(); // if user selected a new target while casting
                 return "IDLE";
             }
         }
@@ -504,7 +485,7 @@ public class Player : Entity {
             // apply the skill after casting is finished
             // note: we don't check the distance again. it's more fun if players
             //       still cast the skill if the target ran a few steps away
-            var skill = skills[currentSkill];
+            Skill skill = skills[currentSkill];
 
             // apply the skill on the target
             CastSkill(skill);
@@ -516,14 +497,8 @@ public class Player : Entity {
             // skill should be followed with default attack? otherwise clear
             } else currentSkill = skill.followupDefaultAttack ? 0 : -1;
 
-            // user tried to target something while casting?
-            // (we have to wait until the skill is finished, otherwise people
-            //  may start to cast and then switch to a far away target while
-            //  casting, etc.)
-            if (nextTarget != null) {
-                target = nextTarget;
-                nextTarget = null;
-            }
+            // use next target if the user tried to target another while casting
+            UseNextTargetIfAny();
 
             // go back to IDLE
             return "IDLE";
@@ -542,8 +517,8 @@ public class Player : Entity {
         if (EventRespawnTimeElapsed()) {
             // find team's spawn point and go there; restore health; go to idle
             Show(); // Hide was called before, Show again now.
-            var start = FindObjectsOfType<PlayerSpawn>().Where(g => g.team == team).First();
-            agent.Warp(start.transform.position); // recommended over transform.position
+            var spawn = FindObjectsOfType<PlayerSpawn>().Where(g => g.team == team).First();
+            agent.Warp(spawn.transform.position); // recommended over transform.position
             Revive();
             return "IDLE";
         }
@@ -624,59 +599,65 @@ public class Player : Entity {
 
     // combat //////////////////////////////////////////////////////////////////
     // no need to instantiate gold popups on the server
+    // -> passing the GameObject and calculating the position on the client
+    //    saves server computations and takes less bandwidth (4 instead of 12 byte)
     [TargetRpc(channel=Channels.DefaultUnreliable)] // unimportant => unreliable
-    public void TargetShowGoldPopup(NetworkConnection target, int amount, Vector3 position) {
+    public void TargetShowGoldPopup(NetworkConnection target, GameObject goldReceiver, int amount) {
         // spawn the gold popup (if any) and set the text
-        if (goldPopupPrefab) {
-            var popup = (GameObject)Instantiate(goldPopupPrefab, position, Quaternion.identity);
-            popup.GetComponentInChildren<TextMesh>().text = "+" + amount.ToString();
+        if (goldReceiver != null) { // still around?
+            Entity receiverEntity = goldReceiver.GetComponent<Entity>();
+            if (receiverEntity != null && goldPopupPrefab != null) {
+                // showing it above their head looks best, and we don't have to use
+                // a custom shader to draw world space UI in front of the entity
+                var bounds = receiverEntity.collider.bounds;
+                Vector3 position = new Vector3(bounds.center.x, bounds.max.y, bounds.center.z);
+
+                var popup = (GameObject)Instantiate(goldPopupPrefab, position, Quaternion.identity);
+                popup.GetComponentInChildren<TextMesh>().text = "+" + amount.ToString();
+            }
         }
     }
 
     // custom DealDamageAt function that also rewards experience if we killed
     // the monster
     [Server]
-    public override HashSet<Entity> DealDamageAt(Entity entity, int amount, float aoeRadius=0) {
+    public override void DealDamageAt(Entity entity, int amount) {
         // deal damage with the default function. get all entities that were hit
         // in the AoE radius
-        var entities = base.DealDamageAt(entity, amount, aoeRadius);
-        foreach (var e in entities) {
-            // did we kill it?
-            if (e.health == 0) {
-                // any exp or gold rewards? (depends on type)
-                long deathExperience = 0;
-                int deathGold = 0;
+        base.DealDamageAt(entity, amount);
 
-                if (e is Monster) {
-                    deathExperience = ((Monster)e).rewardExperience;
-                    deathGold = ((Monster)e).rewardGold;
-                } else if (e is Tower) {
-                    deathExperience = ((Tower)e).rewardExperience;
-                    deathGold = ((Tower)e).rewardGold;
-                } else if (e is Barrack) {
-                    deathExperience = ((Barrack)e).rewardExperience;
-                    deathGold = ((Barrack)e).rewardGold;
-                }
+        // did we kill it?
+        if (entity.health == 0) {
+            // any exp or gold rewards? (depends on type)
+            long deathExperience = 0;
+            int deathGold = 0;
 
-                // gain experience reward
-                experience += BalanceExpReward(deathExperience, level, e.level);
-
-                // gain gold reward
-                gold += deathGold;
-
-                // show gold popup in client
-                // showing them above their head looks best, and we don't have to
-                // use a custom shader to draw world space UI in front of the entity
-                // note: we send the RPC to ourselves because whatever we killed
-                //       might disappear before the rpc reaches it
-                // note: we use a TargetRpc because others don't have to see it
-                if (deathGold > 0) {
-                    var bounds = e.GetComponentInChildren<Collider>().bounds;
-                    TargetShowGoldPopup(connectionToClient, deathGold, new Vector3(bounds.center.x, bounds.max.y, bounds.center.z));
-                }
+            if (entity is Monster) {
+                deathExperience = ((Monster)entity).rewardExperience;
+                deathGold = ((Monster)entity).rewardGold;
+            } else if (entity is Tower) {
+                deathExperience = ((Tower)entity).rewardExperience;
+                deathGold = ((Tower)entity).rewardGold;
+            } else if (entity is Barrack) {
+                deathExperience = ((Barrack)entity).rewardExperience;
+                deathGold = ((Barrack)entity).rewardGold;
             }
+
+            // gain experience reward
+            experience += BalanceExpReward(deathExperience, level, entity.level);
+
+            // gain gold reward
+            gold += deathGold;
+
+            // show gold popup in client
+            // showing them above their head looks best, and we don't have to
+            // use a custom shader to draw world space UI in front of the entity
+            // note: we send the RPC to ourselves because whatever we killed
+            //       might disappear before the rpc reaches it
+            // note: we use a TargetRpc because others don't have to see it
+            if (deathGold > 0)
+                TargetShowGoldPopup(connectionToClient, entity.gameObject, deathGold);
         }
-        return entities; // not really needed anywhere
     }
 
     // experience //////////////////////////////////////////////////////////////
@@ -723,7 +704,7 @@ public class Player : Entity {
     void OnDeath() {
         // stop any movement and buffs, clear target
         agent.ResetPath();
-        StopBuffs();
+        buffs.Clear();
         target = null;
 
         // lose experience
@@ -904,8 +885,12 @@ public class Player : Entity {
     }
 
     // skills //////////////////////////////////////////////////////////////////
-    public override bool CanAttackType(Type t) {
-        return t == typeof(Monster) || t == typeof(Player) || t == typeof(Tower) || t == typeof(Barrack) || t == typeof(Base);
+    public override bool CanAttack(Entity entity) {
+        return health > 0 &&
+               entity != this &&
+               entity.health > 0 &&
+               entity.team != team &&
+               (entity is Monster || entity is Player || entity is Tower || entity is Barrack || entity is Base);
     }
 
     [Command(channel=Channels.DefaultUnreliable)] // unimportant => unreliable
@@ -941,19 +926,22 @@ public class Player : Entity {
         return level - spent + 1;
     }
 
+    // helper function for command and UI
+    public bool CanLearnSkill(Skill skill) {
+        return !skill.learned &&
+               level >= skill.requiredLevel &&
+               SkillpointsSpendable() > 0;
+    }
+
     [Command(channel=Channels.DefaultUnreliable)] // unimportant => unreliable
     public void CmdLearnSkill(int skillIndex) {
         // validate
         if ((state == "IDLE" || state == "MOVING" || state == "CASTING") &&
             0 <= skillIndex && skillIndex < skills.Count) {
-            var skill = skills[skillIndex];
+            Skill skill = skills[skillIndex];
 
             // not learned already? enough skill exp, required level?
-            // note: status effects aren't learnable
-            if (!skill.category.StartsWith("Status") &&
-                !skill.learned &&
-                level >= skill.requiredLevel &&
-                SkillpointsSpendable() > 0) {
+            if (CanLearnSkill(skill)) {
                 // learn skill
                 skill.learned = true;
                 skills[skillIndex] = skill;
@@ -961,20 +949,24 @@ public class Player : Entity {
         }
     }
 
+    // helper function for command and UI
+    public bool CanUpgradeSkill(Skill skill) {
+        return skill.learned &&
+               skill.level < skill.maxLevel &&
+               level >= skill.upgradeRequiredLevel &&
+               SkillpointsSpendable() > 0;
+    }
+
     [Command(channel=Channels.DefaultUnreliable)] // unimportant => unreliable
     public void CmdUpgradeSkill(int skillIndex) {
         // validate
         if ((state == "IDLE" || state == "MOVING" || state == "CASTING") &&
             0 <= skillIndex && skillIndex < skills.Count) {
-            var skill = skills[skillIndex];
+            Skill skill = skills[skillIndex];
 
             // already learned and required level for upgrade?
             // and can be upgraded?
-            // note: status effects aren't upgradeable
-            if (!skill.category.StartsWith("Status") &&
-                skill.learned &&
-                skill.level < skill.maxLevel &&
-                level >= skill.upgradeRequiredLevel) {
+            if (CanUpgradeSkill(skill)) {
                 // upgrade
                 ++skill.level;
                 skills[skillIndex] = skill;
@@ -1076,6 +1068,7 @@ public class Player : Entity {
         if ((left || right) &&
             !Utils.IsCursorOverUserInterface()) {
             var ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
             RaycastHit hit;
             if (Physics.Raycast(ray, out hit)) {
                 // valid target?
@@ -1084,49 +1077,46 @@ public class Player : Entity {
                     // set indicator
                     SetIndicatorViaParent(hit.transform);
 
-                    // is not self?
-                    if (entity != this) {
-                        // attackable & alive => attack
-                        if (CanAttackType(entity.GetType()) && entity.health > 0) {
-                            int skillIndex = -1;
+                    // player/monster/tower etc.? => interact
+                    if (entity is Player || entity is Monster || entity is Tower || entity is Barrack || entity is Base) {
+                        int skillIndex = -1;
 
-                            // trying to cast a skill?
-                            if (left && 0 <= wantedSkill && wantedSkill < skills.Count)
-                                skillIndex = wantedSkill;
-                            // or normal attack?
-                            else if (right)
-                                skillIndex = 0;
+                        // trying to cast a skill?
+                        if (left && 0 <= wantedSkill && wantedSkill < skills.Count)
+                            skillIndex = wantedSkill;
+                        // or normal attack?
+                        else if (right)
+                            skillIndex = 0;
 
-                            if (0 <= skillIndex && skillIndex < skills.Count) {
-                                // cast the wanted skill (if ready)
-                                if (skills[skillIndex].IsReady()) {
-                                    CmdSetTarget(entity.netIdentity);
-                                    CmdUseSkill(skillIndex);
-                                // otherwise walk there if still on cooldown etc
-                                // use collider point(s) to also work with big entities
-                                } else {
-                                    CmdNavigateTo(entity.collider.ClosestPointOnBounds(transform.position),
-                                                  skills[skillIndex].castRange);
-                                }
-                            }
-                        // attackable & dead => walk there
-                        } else if (left && CanAttackType(entity.GetType()) && entity.health == 0) {
-                            // walk there
-                            // use collider point(s) to also work with big entities
-                            CmdNavigateTo(entity.collider.ClosestPointOnBounds(transform.position), 0);
-                        // npc & alive => talk
-                        } else if (left && entity is Npc && entity.health > 0) {
-                            // close enough to talk?
-                            // use collider point(s) to also work with big entities
-                            if (Utils.ClosestDistance(collider, entity.collider) <= interactionRange) {
+                        if (0 <= skillIndex && skillIndex < skills.Count) {
+                            // cast the wanted skill (if ready)
+                            if (skills[skillIndex].IsReady()) {
                                 CmdSetTarget(entity.netIdentity);
-                                FindObjectOfType<UINpcTrading>().Show();
-                            // otherwise walk there
+                                CmdUseSkill(skillIndex);
+                            // otherwise walk there if still on cooldown etc
                             // use collider point(s) to also work with big entities
                             } else {
-                                CmdNavigateTo(entity.collider.ClosestPointOnBounds(transform.position), interactionRange);
+                                CmdNavigateTo(entity.collider.ClosestPointOnBounds(transform.position),
+                                              skills[skillIndex].castRange);
                             }
                         }
+                    // npc & alive => talk
+                    } else if (left && entity is Npc && entity.health > 0) {
+                        // close enough to talk?
+                        // use collider point(s) to also work with big entities
+                        if (Utils.ClosestDistance(collider, entity.collider) <= interactionRange) {
+                            CmdSetTarget(entity.netIdentity);
+                            FindObjectOfType<UINpcTrading>().Show();
+                        // otherwise walk there
+                        // use collider point(s) to also work with big entities
+                        } else {
+                            CmdNavigateTo(entity.collider.ClosestPointOnBounds(transform.position), interactionRange);
+                        }
+                    // not interesting or dead? => walk there
+                    } else if (left) {
+                        // walk there
+                        // use collider point(s) to also work with big entities
+                        CmdNavigateTo(entity.collider.ClosestPointOnBounds(transform.position), 0);
                     }
                 // otherwise it's a movement target
                 } else {
@@ -1154,7 +1144,7 @@ public class Player : Entity {
             inventory[slotIndices[0]].name == inventory[slotIndices[1]].name) {
             CmdInventoryMerge(slotIndices[0], slotIndices[1]);
         // split?
-        } else if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) {
+        } else if (Utils.AnyKeyPressed(inventorySplitKeys)) {
             CmdInventorySplit(slotIndices[0], slotIndices[1]);
         // swap?
         } else {
